@@ -282,9 +282,9 @@ struct
 
     (* Re-raise an exception that has been handled preserving the location. *)
     fun reraise exn =
-        case PolyML.exceptionLocation exn of
+        case Exception.exceptionLocation exn of
             NONE => raise exn
-        |   SOME location => PolyML.raiseWithLocation (exn, location);
+        |   SOME location => Exception.raiseWithLocation (exn, location);
 
 end;
 

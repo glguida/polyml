@@ -572,7 +572,8 @@ local
                     (* Report exceptions in running code. *)
                         handle exn =>
                         let
-                            open PolyML PolyML.Exception
+                            open PolyML
+                            open Exception
                             val exLoc =
                                 case exceptionLocation exn of
                                     NONE => []
@@ -1702,43 +1703,5 @@ in
         and print_depth i = Compiler.printDepth := i
         and error_depth i = Compiler.errorDepth := i
         and line_length i = Compiler.lineLength := i
-
-        (* Legacy exception_trace. *)
-        structure Exception =
-        struct
-            open Exception
-
-            local
-                fun printTrace(trace, exn) =
-                let
-                    fun pr s = TextIO.output(TextIO.stdOut, s)
-                in
-                    (* Exception *)
-                    pr "Exception trace for exception - ";
-                    pr (General.exnName exn);
-                    (* Location if available *)
-                    case exceptionLocation exn of
-                        SOME { file, startLine=line, ... } =>
-                            (
-                                if file = "" then () else (pr " raised in "; pr file);
-                                if line = 0 then () else (pr " line "; pr(Int.toString line))
-                            )
-                    |   NONE => ();
-                    pr "\n\n";
-                    (* Function list *)
-                    List.app(fn s => (pr s; pr "\n")) trace;
-                    pr "End of trace\n\n";
-                
-                    TextIO.flushOut TextIO.stdOut;
-                    (* Reraise the exception. *)
-                    LibrarySupport.reraise exn
-                end
-            in
-                fun exception_trace f = traceException(f, printTrace)
-            end
-        end
-        
-        (* Include it in the PolyML structure for backwards compatibility. *)
-        val exception_trace = Exception.exception_trace
     end
 end (* PolyML. *);

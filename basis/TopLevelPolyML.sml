@@ -1463,6 +1463,7 @@ local
                                 |   Exception exn =>
                                     let
                                         open PolyML
+                                        open Exception
                                         val exLoc =
                                             case exceptionLocation exn of
                                                 SOME loc => [ContextLocation loc]
@@ -1711,6 +1712,15 @@ in
             val parseTree = parseTree
             val runIDEProtocol = runIDEProtocol
         end;
+
+        (* Include these in PolyML for backwards compatibility. *)
+        structure SaveState = SaveState
+        and       Exception = Exception
+
+
+        (* For backwards compatibility include these in the PolyML structure. *)
+        val exceptionLocation = Exception.exceptionLocation
+        and raiseWithLocation = Exception.raiseWithLocation
 
         open PolyML (* Add this to the PolyML structure. *)
     end

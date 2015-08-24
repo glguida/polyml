@@ -25,7 +25,7 @@
    first.  However we also want "make" in the PolyML structure so we have
    to complete the compilation later. *)
 local
-    open RuntimeCalls;
+    open RuntimeCalls
 in
 
     structure PolyML =
@@ -112,85 +112,6 @@ in
     fun rtsVersion () : int = RunCall.run_call2 POLY_SYS_process_env(104, ())
     fun architecture(): string = RunCall.run_call2 RuntimeCalls.POLY_SYS_poly_specific (12, ())
     fun rtsArgumentHelp(): string = RunCall.run_call2 RuntimeCalls.POLY_SYS_poly_specific (19, ());
-
-
-    (* Saving and loading state. *)
-    structure SaveState = 
-        struct
-            fun saveChild(f: string, depth: int): unit =
-                RunCall.run_call2 RuntimeCalls.POLY_SYS_poly_specific (20, (f, depth))
-            fun saveState f = saveChild (f, 0);
-            fun showHierarchy(): string list =
-                RunCall.run_call2 RuntimeCalls.POLY_SYS_poly_specific (22, ())
-            fun renameParent{ child: string, newParent: string }: unit =
-                RunCall.run_call2 RuntimeCalls.POLY_SYS_poly_specific (23, (child, newParent))
-            fun showParent(child: string): string option =
-                RunCall.run_call2 RuntimeCalls.POLY_SYS_poly_specific (24, child)
-
-            fun loadState (f: string): unit = RunCall.run_call2 RuntimeCalls.POLY_SYS_poly_specific (21, f)
-        end
-
-        structure Exception =
-        struct
-            fun traceException(f: unit->'a, h: string list * exn -> 'a): 'a =
-                RunCall.run_call1 POLY_SYS_exception_trace_fn f
-                    handle RunCall.ExTrace(s, e) => h(s, e)
-
-            fun exceptionLocation(exn: exn): location option =
-            let
-                open RuntimeCalls
-                datatype RuntimeLocation =
-                    NoLocation
-                |   SomeLocation of
-                        (* file: *) string * 
-                        (*startLine:*) int *  (*startPosition:*) int *
-                        (*endLine:*) int * (*endPosition:*) int
-            in
-                (* If we get an exception in the compiler it may be code that was built using the
-                   old exception packet format that didn't include a loction so we need to check the
-                   length of the packet first.  This won't be needed once we can be sure we're using
-                   5.3. *)
-                if RunCall.run_call1 POLY_SYS_get_length exn < 0w4
-                then NONE
-                else case RunCall.run_call2 POLY_SYS_load_word(exn, 0w3) of
-                    NoLocation => NONE
-                |   SomeLocation(file, startLine, startPosition, endLine, endPosition) =>
-                        SOME { file=file, startLine=startLine, startPosition=startPosition,
-                               endLine=endLine, endPosition=endPosition }
-            end
-
-            (* Raise an exception using a given location rather than the value in the packet. *)
-            fun raiseWithLocation(ex: exn, {file, startLine, startPosition, endLine, endPosition}: location) =
-            let
-                open RunCall RuntimeCalls
-                fun getEntry n = run_call2 POLY_SYS_load_word(ex, n)
-                (* This datatype is used in VALUE_OPS and FinalPolyML to define the format of a
-                   location in an exception packet.  It includes the possibility that the location
-                   information may be missing. *)
-                datatype RuntimeLocation =
-                    NoLocation
-                |   SomeLocation of
-                        (* file: *) string * 
-                        (*startLine:*) int *  (*startPosition:*) int *
-                        (*endLine:*) int * (*endPosition:*) int
-               val packet =
-                (getEntry 0, getEntry 1, getEntry 2,
-                        SomeLocation(file, startLine, startPosition, endLine, endPosition))
-            in
-                run_call1 POLY_SYS_raisex packet
-            end
-
-            (* Re-raise an exception that has been handled preserving the location. *)
-            (* This is in LibrarySupport but is probably generally useful. *)
-            fun reraise exn =
-                case exceptionLocation exn of
-                    NONE => raise exn
-                |   SOME location => raiseWithLocation (exn, location)
-        end
-
-        (* For backwards compatibility include these in the PolyML structure. *)
-        val exceptionLocation = Exception.exceptionLocation
-        and raiseWithLocation = Exception.raiseWithLocation
 
         structure IntInf =
         struct
